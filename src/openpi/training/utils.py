@@ -1,6 +1,10 @@
 from collections.abc import Callable
 from typing import Any
 
+# `optax.OptState` is chex's recursive `ArrayTree` alias, whose self-references are the bare
+# string 'ArrayTree'; beartype (>=0.20) resolves such forward references in the module that
+# declares the annotation, so the name must exist in this namespace.
+from chex import ArrayTree  # noqa: F401
 from flax import nnx
 from flax import struct
 import jax
