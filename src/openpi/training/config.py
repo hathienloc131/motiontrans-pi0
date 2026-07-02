@@ -222,6 +222,10 @@ class SimpleDataConfig(DataConfigFactory):
 
 @dataclasses.dataclass(frozen=True)
 class LeRobotMotionTransDataConfig(DataConfigFactory):
+    # Optional here (unlike the base factory): when training from zarr shards via
+    # dataset_path, no LeRobot repo id exists and it is only used as the asset id.
+    repo_id: str | None = None
+
     @override
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
 
@@ -517,7 +521,9 @@ class MotionTransADataConfig(DataConfig):
 
 @dataclasses.dataclass(frozen=True)
 class MotionTransTrainConfig(TrainConfig):
-    repo_id: str = tyro.MISSING
+    # Optional when training from zarr shards (dataset_path); required for the LeRobot
+    # path (dataset_root / hub) and for compute_norm_stats, where it names the assets dir.
+    repo_id: str | None = None
     dataset_path: str = ""
     # If set, load the LeRobot dataset (used when dataset_path is empty) from this local
     # directory instead of resolving repo_id under HF_LEROBOT_HOME / the HF Hub.
@@ -534,7 +540,7 @@ class MotionTransTrainConfig(TrainConfig):
     # Placeholder; fully recomputed in __post_init__ from the fields above regardless of
     # whether dataset_path (zarr) or dataset_root/repo_id (LeRobot) is used.
     data: tyro.conf.Suppress[DataConfigFactory] = dataclasses.field(
-        init=False, default_factory=lambda: LeRobotMotionTransDataConfig(repo_id="")
+        init=False, default_factory=LeRobotMotionTransDataConfig
     )
 
     # If true, set the `decay_step` to the number of training steps.
