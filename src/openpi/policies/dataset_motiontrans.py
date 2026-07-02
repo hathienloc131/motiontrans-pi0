@@ -21,7 +21,7 @@ def _obs_col(name: str) -> str:
 
 class MotionTransDataset(LeRobotDataset):
     def __init__(self, data_config, action_horizon: int):
-        super().__init__(data_config.repo_id, root=data_config.dataset_root, local_files_only=data_config.local_files_only)
+        super().__init__(data_config.repo_id, root=data_config.dataset_root)
         self.data_config = data_config
         self.alpha = data_config.alpha
         self.single_arm = data_config.single_arm

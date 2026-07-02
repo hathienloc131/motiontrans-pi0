@@ -103,9 +103,7 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
                 val_dataset.set_sample_ratio(sample_ratio)
         return train_dataset, val_dataset
 
-    dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(
-        repo_id, root=data_config.dataset_root, local_files_only=data_config.local_files_only
-    )
+    dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id, root=data_config.dataset_root)
 
     if hasattr(data_config, 'dataset_class'):
         dataset = data_config.dataset_class(data_config, model_config.action_horizon)
@@ -124,7 +122,6 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
                 key: [t / dataset_meta.fps for t in range(model_config.action_horizon)]
                 for key in data_config.action_sequence_keys
             },
-            local_files_only=data_config.local_files_only,
         )
 
     if data_config.prompt_from_task:
