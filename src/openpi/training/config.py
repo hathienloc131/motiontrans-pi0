@@ -531,7 +531,11 @@ class MotionTransTrainConfig(TrainConfig):
     proprioception_rep: str = 'relative'   # 'abs' or 'relative', ('rel' is not used since it calculate pos & rot respectively)
     action_rep: str = 'relative'     
     proprioception_droprate: float = 0.0
-    data: tyro.conf.Suppress[DataConfigFactory] = dataclasses.field(init=False)
+    # Placeholder; fully recomputed in __post_init__ from the fields above regardless of
+    # whether dataset_path (zarr) or dataset_root/repo_id (LeRobot) is used.
+    data: tyro.conf.Suppress[DataConfigFactory] = dataclasses.field(
+        init=False, default_factory=lambda: LeRobotMotionTransDataConfig(repo_id="")
+    )
 
     # If true, set the `decay_step` to the number of training steps.
     lr_decay_till_end: bool = True
