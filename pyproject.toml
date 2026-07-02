@@ -64,9 +64,6 @@ lerobot = { git = "https://github.com/huggingface/lerobot", rev = "6674e36824947
 [tool.uv.workspace]
 members = ["packages/*"]
 
-[[tool.uv.index]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-
 [tool.ruff]
 line-length = 120
 target-version = "py311"
