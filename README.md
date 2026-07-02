@@ -12,11 +12,22 @@ Please follow the installation instructions in the original [Pi0 repository](htt
 
 Please follow the data preparation instructions in the original [MotionTrans repository](https://github.com/michaelyuancb/motiontrans). All data should be processed as `.zarr` files for Pi0-VLA training.
 
+Alternatively, you can train directly from a LeRobot-format dataset instead of `.zarr` shards — see
+[docs/lerobot_dataset.md](docs/lerobot_dataset.md) for the required schema and the `scripts_exp/*_lerobot.sh`
+entry points.
+
 ## Training and Evaluation
 
 ```
 bash scripts_exp/train_cotrain.sh
 bash scripts_exp/eval.sh
+```
+
+For the LeRobot-dataset variant, see [docs/lerobot_dataset.md](docs/lerobot_dataset.md):
+```
+bash scripts_exp/get_normalize_cotrain_lerobot.sh
+bash scripts_exp/train_cotrain_lerobot.sh
+bash scripts_exp/eval_lerobot.sh
 ```
 
 ## Inference

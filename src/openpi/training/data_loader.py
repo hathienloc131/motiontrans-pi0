@@ -103,8 +103,10 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
                 val_dataset.set_sample_ratio(sample_ratio)
         return train_dataset, val_dataset
 
-    dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id, local_files_only=data_config.local_files_only)
-    
+    dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(
+        repo_id, root=data_config.dataset_root, local_files_only=data_config.local_files_only
+    )
+
     if hasattr(data_config, 'dataset_class'):
         dataset = data_config.dataset_class(data_config, model_config.action_horizon)
         if data_config.use_val_dataset:
@@ -112,10 +114,12 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
         if sample_ratio < 1.0:
             print(f"Dataset sample ratio: {sample_ratio}")
             dataset.set_sample_ratio(sample_ratio)
-            val_dataset.set_sample_ratio(sample_ratio)
+            if val_dataset is not None:
+                val_dataset.set_sample_ratio(sample_ratio)
     else:
         dataset = lerobot_dataset.LeRobotDataset(
             data_config.repo_id,
+            root=data_config.dataset_root,
             delta_timestamps={
                 key: [t / dataset_meta.fps for t in range(model_config.action_horizon)]
                 for key in data_config.action_sequence_keys

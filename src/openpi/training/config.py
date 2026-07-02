@@ -95,6 +95,11 @@ class DataConfig:
     # If true, will disable syncing the dataset from the Hugging Face Hub. Allows training on local-only datasets.
     local_files_only: bool = False
 
+    # If set, load the LeRobot dataset directly from this local directory (passed as `root=` to
+    # LeRobotDataset/LeRobotDatasetMetadata) instead of resolving `repo_id` under HF_LEROBOT_HOME
+    # or the HF Hub. `repo_id` is still required (used as the dataset identifier/asset id).
+    dataset_root: str | None = None
+
     def create_val_config(self) -> 'DataConfig':
         """
         Create a config for the validation dataset.
@@ -244,7 +249,7 @@ class LeRobotMotionTransDataConfig(DataConfigFactory):
         repo_id = self.repo_id if self.repo_id is not tyro.MISSING else None
         asset_id = self.assets.asset_id or repo_id
         return dataclasses.replace(
-            self.base_config or MotionTransDataConfig(),
+            self.base_config or MotionTransADataConfig(),
             repo_id=repo_id,
             asset_id=asset_id,
             norm_stats=self._load_norm_stats(epath.Path(self.assets.assets_dir or assets_dirs), asset_id),
@@ -514,6 +519,9 @@ class MotionTransADataConfig(DataConfig):
 class MotionTransTrainConfig(TrainConfig):
     repo_id: str = tyro.MISSING
     dataset_path: str = ""
+    # If set, load the LeRobot dataset (used when dataset_path is empty) from this local
+    # directory instead of resolving repo_id under HF_LEROBOT_HOME / the HF Hub.
+    dataset_root: str | None = None
     single_arm: bool = False
     alpha: float = 0.5
     state_down_sample_steps: list[int] = tyro.MISSING
@@ -530,13 +538,14 @@ class MotionTransTrainConfig(TrainConfig):
 
     def __post_init__(self):
         super().__post_init__()
-        object.__setattr__(self, 'data', LeRobotMotionTransADataConfig(
+        object.__setattr__(self, 'data', LeRobotMotionTransDataConfig(
             repo_id=self.repo_id,
-            base_config=MotionTransDataConfig(
+            base_config=MotionTransADataConfig(
                 local_files_only=True,  # Set to True for local-only datasets.
                 prompt_from_task=True,
                 alpha=self.alpha,
                 dataset_path=self.dataset_path,
+                dataset_root=self.dataset_root,
                 single_arm=self.single_arm,
                 proprioception_droprate=self.proprioception_droprate,
                 state_down_sample_steps=self.state_down_sample_steps,
