@@ -31,7 +31,7 @@ dependencies = [
     "tqdm-loggable>=0.2",
     "typing-extensions>=4.12.2",
     "tyro>=0.9.5",
-    "wandb==0.18.0",
+    "wandb>=0.20.0,<0.23.0",
     "boto3>=1.35.7",
     "types-boto3[boto3,s3]>=1.35.7",
     "filelock>=3.16.1",
