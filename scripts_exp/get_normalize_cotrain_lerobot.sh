@@ -16,11 +16,11 @@ dataset_root="Put /path/to/your/lerobot_dataset Here"   # local directory contai
 # NOTE: dataset_path is intentionally left unset/empty so data_loader.create_dataset()
 # routes through the LeRobot branch (MotionTransDataset) instead of ZarrDataset.
 
-checkpoint_base_dir="checkpoints_pi0/pretrained_ckpts"
-assets_base_dir="checkpoints_pi0/assets"
-export HF_HOME="/cephfs/shared/yuanchengbo/hub/huggingface"
-export OPENPI_DATA_HOME="checkpoints_pi0/openpi"
-export LEROBOT_HOME="checkpoints_pi0/lerobot"
+checkpoint_base_dir="/mnt/data/sftp/data/locht1/motiontrans/pretrained_ckpts"
+assets_base_dir="/mnt/data/sftp/data/locht1/motiontrans/assets"
+export HF_HOME="/mnt/data/sftp/data/locht1/hf"
+export OPENPI_DATA_HOME="/mnt/data/sftp/data/locht1/motiontrans/openpi"
+export LEROBOT_HOME="/mnt/data/sftp/data/locht1/motiontrans/lerobot"
 export CUDA_VISIBLE_DEVICES=0
 exp_name="default"               # not used
 
