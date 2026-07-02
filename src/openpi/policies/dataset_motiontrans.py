@@ -153,9 +153,24 @@ class MotionTransDataset(LeRobotDataset):
         # get image and image history
         image_target_idx = np.array([idx] + [idx - self.image_down_sample_steps[history_idx] for history_idx in range(self.image_hisory_length - 1)])
         image_target_idx = np.clip(image_target_idx[::-1], start_idx, end_idx - 1)
-        for i in range(self.image_hisory_length):
-            # NOTE: following the normalization method of src/openpi/models/model.py line 117
-            return_dict['image_{}'.format(i + 1)] = self.hf_dataset[int(image_target_idx[i])]['observation.images.camera0'] * 2.0 - 1.0
+        image_key = 'observation.images.camera0'
+        # NOTE: following the normalization method of src/openpi/models/model.py line 117
+        if self.compute_norm_stats:
+            # norm stats only cover state/actions; emit placeholder images instead of paying
+            # for video decoding (MotionTransInputs still requires the image_* keys to exist)
+            for i in range(self.image_hisory_length):
+                return_dict['image_{}'.format(i + 1)] = torch.zeros(3, 32, 32)
+        elif image_key in self.meta.video_keys:
+            # video-backed camera: frames live in mp4 files, not in hf_dataset columns
+            query_ts = torch.stack(self.hf_dataset.select([int(i) for i in image_target_idx])['timestamp']).tolist()
+            frames = self._query_videos({image_key: query_ts}, episode_index)[image_key]
+            if frames.dim() == 3:  # _query_videos squeezes single-frame queries to (C, H, W)
+                frames = frames.unsqueeze(0)
+            for i in range(self.image_hisory_length):
+                return_dict['image_{}'.format(i + 1)] = frames[i] * 2.0 - 1.0
+        else:
+            for i in range(self.image_hisory_length):
+                return_dict['image_{}'.format(i + 1)] = self.hf_dataset[int(image_target_idx[i])][image_key] * 2.0 - 1.0
         
         # print(type(return_dict['image_{}'.format(i + 1)]))
         # print(return_dict['image_{}'.format(i + 1)].dtype)
