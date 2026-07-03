@@ -26,15 +26,15 @@ now_date=$(date "+%Y.%m.%d")
 
 alpha=0.5
 proprioception_droprate=0.0
-num_devices=8
-single_batch_size=24
+num_devices=2
+single_batch_size=12
 batch_size=$((num_devices * single_batch_size))
 echo batch_size $batch_size
 
-num_train_steps=150001
-keep_period=75000
+num_train_steps=120001
+keep_period=60000
 log_interval=250
-save_interval=75000
+save_interval=60000
 val_interval=5000
 max_token_len=150
 
