@@ -46,7 +46,7 @@ echo val_batch_size $val_batch_size
 
 # ======== pi0 cocktail  =====
 # WANDB_DISABLED=True
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.95 uv run scripts/train.py pi0_droid_motiontrans \
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.95 python scripts/train.py pi0_droid_motiontrans \
 --exp-name="${now_date}_${now_seconds}_${repo_id}_${exp_name}" \
 --alpha=${alpha} \
 --checkpoint_base_dir=${checkpoint_base_dir} \

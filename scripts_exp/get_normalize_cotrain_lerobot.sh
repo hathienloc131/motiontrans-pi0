@@ -18,7 +18,7 @@ exp_name="default"               # not used
 
 # we downsample data-obs and action from 20 Hz to 10 Hz, since pi0 inference only support for 10Hz inference speed.
 
-uv run scripts/compute_norm_stats.py pi0_droid_motiontrans \
+python scripts/compute_norm_stats.py pi0_droid_motiontrans \
 --exp_name=${exp_name} \
 --checkpoint_base_dir=${checkpoint_base_dir} \
 --assets_base_dir=${assets_base_dir} \
