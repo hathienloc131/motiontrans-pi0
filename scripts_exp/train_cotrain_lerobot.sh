@@ -5,8 +5,12 @@
 # stats and the train/val split for this repo_id.
 
 exp_name="default"                           # the description of the experiment target
-repo_id="Put YOUR_LEROBOT_REPO_ID Here"      # identifier only, also used for norm-stat/assets dir naming
-dataset_root="Put /path/to/your/lerobot_dataset Here"   # local directory containing the LeRobot dataset (meta/, data/, videos/)
+repo_id="pp"          # identifier only, used for norm-stats/assets dir naming
+dataset_root="/mnt/data/sftp/data/locht1/vr_data/human_stack_three_cup|/mnt/data/sftp/data/locht1/vr_data/robot_stack_three_cup"   # local directory containing the LeRobot dataset (meta/, data/, videos/)
+# Multiple LeRobot datasets (e.g. human + robot co-training): separate the roots with '|',
+#   dataset_root="/path/to/human_data|/path/to/robot_data"
+# The list and its ORDER must match the get_normalize_cotrain_lerobot.sh run (norm stats and
+# the per-dataset train_val_split_{i}.json files are computed over/indexed by this list).
 # NOTE: dataset_path is intentionally left unset/empty so data_loader.create_dataset()
 # routes through the LeRobot branch (MotionTransDataset) instead of ZarrDataset.
 
@@ -14,7 +18,7 @@ checkpoint_base_dir="/mnt/data/sftp/data/locht1/motiontrans/pretrained_ckpts"
 assets_base_dir="/mnt/data/sftp/data/locht1/motiontrans/assets"
 export HF_HOME="/mnt/data/sftp/data/locht1/hf"
 export OPENPI_DATA_HOME="/mnt/data/sftp/data/locht1/motiontrans/openpi"
-export LEROBOT_HOME="/mnt/data/sftp/data/locht1/motiontrans/lerobot"
+export HF_LEROBOT_HOME="/mnt/data/sftp/data/locht1/motiontrans/lerobot"
 
 logging_time=$(date "+%d-%H.%M.%S")
 now_seconds="${logging_time: -8}"
@@ -49,7 +53,7 @@ XLA_PYTHON_CLIENT_MEM_FRACTION=0.95 uv run scripts/train.py pi0_droid_motiontran
 --assets_base_dir=${assets_base_dir} \
 --batch-size=$batch_size \
 --repo_id=${repo_id} \
---dataset_root=${dataset_root} \
+--dataset_root="${dataset_root}" \
 --state_down_sample_steps 2 \
 --action_down_sample_steps 2 \
 --proprioception_rep "relative" \

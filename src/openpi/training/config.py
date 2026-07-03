@@ -98,6 +98,8 @@ class DataConfig:
     # If set, load the LeRobot dataset directly from this local directory (passed as `root=` to
     # LeRobotDataset/LeRobotDatasetMetadata) instead of resolving `repo_id` under HF_LEROBOT_HOME
     # or the HF Hub. `repo_id` is still required (used as the dataset identifier/asset id).
+    # MotionTrans configs may pass several '|'-separated directories (like ZarrDataset's
+    # multi-folder dataset_path syntax) to train / compute norm stats over merged datasets.
     dataset_root: str | None = None
 
     def create_val_config(self) -> 'DataConfig':
@@ -526,7 +528,10 @@ class MotionTransTrainConfig(TrainConfig):
     repo_id: str | None = None
     dataset_path: str = ""
     # If set, load the LeRobot dataset (used when dataset_path is empty) from this local
-    # directory instead of resolving repo_id under HF_LEROBOT_HOME / the HF Hub.
+    # directory instead of resolving repo_id under HF_LEROBOT_HOME / the HF Hub. Several
+    # '|'-separated directories may be given to train over the merged datasets (keep the
+    # order identical between compute_norm_stats and training: the per-dataset train/val
+    # splits are stored as train_val_split_{i}.json indexed by position).
     dataset_root: str | None = None
     single_arm: bool = False
     alpha: float = 0.5

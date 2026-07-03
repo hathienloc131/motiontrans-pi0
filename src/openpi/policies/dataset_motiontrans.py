@@ -1,5 +1,6 @@
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 import numpy as np
+import dataclasses
 import os
 import json
 import torch
@@ -20,9 +21,12 @@ def _obs_col(name: str) -> str:
 
 
 class MotionTransDataset(LeRobotDataset):
-    def __init__(self, data_config, action_horizon: int):
+    def __init__(self, data_config, action_horizon: int, split_filename: str = 'train_val_split.json'):
         super().__init__(data_config.repo_id, root=data_config.dataset_root)
         self.data_config = data_config
+        # name of the train/val split file under norm_stats_dir; MultiMotionTransDataset gives
+        # each sub-dataset its own file so splits don't collide in the shared assets dir
+        self.split_filename = split_filename
         self.alpha = data_config.alpha
         self.single_arm = data_config.single_arm
         self.image_hisory_length = len(data_config.image_down_sample_steps) + 1
@@ -95,12 +99,12 @@ class MotionTransDataset(LeRobotDataset):
         train_episode_idx = np.sort(train_episode_idx)
         val_episode_idx = np.setdiff1d(np.arange(episode_num), train_episode_idx)
         os.makedirs(self.data_config.norm_stats_dir, exist_ok=True)
-        with open(os.path.join(self.data_config.norm_stats_dir, 'train_val_split.json'), 'w') as f:
+        with open(os.path.join(self.data_config.norm_stats_dir, self.split_filename), 'w') as f:
             json.dump({'train_episode_idx': train_episode_idx.tolist(), 'val_episode_idx': val_episode_idx.tolist()}, f)
 
 
     def get_indices(self, split):
-        with open(os.path.join(self.data_config.norm_stats_dir, 'train_val_split.json'), 'r') as f:
+        with open(os.path.join(self.data_config.norm_stats_dir, self.split_filename), 'r') as f:
             split_idx = json.load(f)[f'{split}_episode_idx']
         indices = [idx for idx in split_idx]
         return indices
@@ -282,5 +286,88 @@ class MotionTransDataset(LeRobotDataset):
             return_dict['alpha'] = 1 - self.alpha
         else:
             return_dict['alpha'] = self.alpha
-            
+
         return return_dict
+
+
+class MultiMotionTransDataset:
+    """Concatenation of several MotionTransDataset instances, one per '|'-separated entry in
+    data_config.dataset_root (same multi-folder syntax as ZarrDataset). Presents the same
+    interface as a single MotionTransDataset (len/getitem/get_val_dataset/set_sample_ratio),
+    so norm stats, train/val splits and training all run over the merged data.
+
+    The dataset_root order must be identical between the compute_norm_stats run and the
+    training run: each sub-dataset stores its train/val split as train_val_split_{i}.json
+    (indexed by position) in the shared norm_stats_dir.
+    """
+
+    def __init__(self, data_config, action_horizon: int):
+        roots = [root for root in data_config.dataset_root.split('|') if root]
+        assert len(roots) > 1, "MultiMotionTransDataset expects multiple '|'-separated dataset roots"
+        dataset_class = getattr(data_config, 'dataset_class', MotionTransDataset)
+        self.datasets = [
+            dataset_class(
+                dataclasses.replace(data_config, dataset_root=root),
+                action_horizon,
+                split_filename=f'train_val_split_{i}.json',
+            )
+            for i, root in enumerate(roots)
+        ]
+
+        # Each sub-dataset computed its human/robot loss-rebalancing alpha from its own frame
+        # counts; recompute it over the merged counts and overwrite, so the human/robot
+        # gradient weighting matches the configured alpha globally (as ZarrDataset does).
+        is_human_all = np.concatenate([d.is_human_list for d in self.datasets])
+        n_human = int(is_human_all.sum())
+        n_robot = len(is_human_all) - n_human
+        alpha = data_config.alpha
+        if n_human == 0:
+            alpha = 1.0
+        elif n_robot == 0:
+            alpha = 0.0
+        else:
+            alpha_robot = alpha / n_robot
+            alpha_human = (1 - alpha) / n_human
+            alpha = alpha_robot / (alpha_robot + alpha_human)
+        for d in self.datasets:
+            d.alpha = alpha
+
+        # task_index values are only unique within one LeRobot dataset, so build a merged task
+        # table and shift each sub-dataset's task_index by its offset in __getitem__.
+        self.task_offsets = []
+        self.tasks = {}
+        offset = 0
+        for d in self.datasets:
+            self.task_offsets.append(offset)
+            for task_idx, task in d.meta.tasks.items():
+                self.tasks[offset + int(task_idx)] = task
+            offset += len(d.meta.tasks)
+
+        self._update_sizes()
+
+    def _update_sizes(self):
+        self.cumulative_sizes = np.cumsum([len(d) for d in self.datasets])
+
+    def __len__(self):
+        return int(self.cumulative_sizes[-1])
+
+    def __getitem__(self, idx) -> dict:
+        idx = int(idx)
+        if idx < 0:
+            idx += len(self)
+        dataset_idx = int(np.searchsorted(self.cumulative_sizes, idx, side='right'))
+        local_idx = idx - (int(self.cumulative_sizes[dataset_idx - 1]) if dataset_idx > 0 else 0)
+        item = self.datasets[dataset_idx][local_idx]
+        item['task_index'] = item['task_index'] + self.task_offsets[dataset_idx]
+        return item
+
+    def get_val_dataset(self):
+        val_set = copy.copy(self)
+        val_set.datasets = [d.get_val_dataset() for d in self.datasets]
+        val_set._update_sizes()
+        return val_set
+
+    def set_sample_ratio(self, sample_ratio):
+        for d in self.datasets:
+            d.set_sample_ratio(sample_ratio)
+        self._update_sizes()

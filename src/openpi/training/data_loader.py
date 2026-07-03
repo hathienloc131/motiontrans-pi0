@@ -13,6 +13,7 @@ import torch
 import openpi.models.model as _model
 import openpi.training.config as _config
 import openpi.transforms as _transforms
+from openpi.policies.dataset_motiontrans import MultiMotionTransDataset
 from openpi.policies.dataset_zarr import ZarrDataset
 
 T_co = TypeVar("T_co", covariant=True)
@@ -103,10 +104,15 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
                 val_dataset.set_sample_ratio(sample_ratio)
         return train_dataset, val_dataset
 
-    dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id, root=data_config.dataset_root)
-
     if hasattr(data_config, 'dataset_class'):
-        dataset = data_config.dataset_class(data_config, model_config.action_horizon)
+        if data_config.dataset_root is not None and '|' in data_config.dataset_root:
+            # multiple LeRobot datasets ('|'-separated roots, like ZarrDataset's multi-folder
+            # syntax): concatenate them so norm stats / training run over the merged data
+            dataset = MultiMotionTransDataset(data_config, model_config.action_horizon)
+            tasks = dataset.tasks
+        else:
+            dataset = data_config.dataset_class(data_config, model_config.action_horizon)
+            tasks = dataset.meta.tasks
         if data_config.use_val_dataset:
             val_dataset = dataset.get_val_dataset()
         if sample_ratio < 1.0:
@@ -115,6 +121,7 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
             if val_dataset is not None:
                 val_dataset.set_sample_ratio(sample_ratio)
     else:
+        dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id, root=data_config.dataset_root)
         dataset = lerobot_dataset.LeRobotDataset(
             data_config.repo_id,
             root=data_config.dataset_root,
@@ -123,11 +130,12 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
                 for key in data_config.action_sequence_keys
             },
         )
+        tasks = dataset_meta.tasks
 
     if data_config.prompt_from_task:
-        dataset = TransformedDataset(dataset, [_transforms.PromptFromLeRobotTask(dataset_meta.tasks)])
+        dataset = TransformedDataset(dataset, [_transforms.PromptFromLeRobotTask(tasks)])
         if val_dataset is not None:
-            val_dataset = TransformedDataset(val_dataset, [_transforms.PromptFromLeRobotTask(dataset_meta.tasks)])
+            val_dataset = TransformedDataset(val_dataset, [_transforms.PromptFromLeRobotTask(tasks)])
 
     return dataset, val_dataset
 

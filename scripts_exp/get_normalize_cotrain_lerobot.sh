@@ -1,18 +1,10 @@
-# bash scripts_exp/get_normalize_cotrain_lerobot.sh
-#
-# LeRobot-dataset variant of get_normalize_cotrain.sh: instead of reading pre-processed
-# .zarr shards (dataset_path), this loads a LeRobot-format dataset via MotionTransDataset
-# (src/openpi/policies/dataset_motiontrans.py), read from a local directory (dataset_root)
-# rather than repo_id/HF Hub resolution. The dataset must expose the columns
-# MotionTransDataset expects: robot0_eef_pos, robot0_eef_rot_axis_angle,
-# gripper0_gripper_pose, action, camera0_pose, image, is_human (plus robot1_*/gripper1_*
-# for every row when running bimanual, i.e. single_arm unset below).
-#
-# repo_id is still required (used as the norm-stats/assets identifier), but the actual data
-# is read from dataset_root instead of being resolved under $LEROBOT_HOME/<repo_id> or the HF Hub.
-
-repo_id="Put YOUR_LEROBOT_REPO_ID Here"          # identifier only, used for norm-stats/assets dir naming
-dataset_root="Put /path/to/your/lerobot_dataset Here"   # local directory containing the LeRobot dataset (meta/, data/, videos/)
+repo_id="pp"          # identifier only, used for norm-stats/assets dir naming
+dataset_root="/mnt/data/sftp/data/locht1/vr_data/human_stack_three_cup|/mnt/data/sftp/data/locht1/vr_data/robot_stack_three_cup"   # local directory containing the LeRobot dataset (meta/, data/, videos/)
+# Multiple LeRobot datasets (e.g. human + robot co-training): separate the roots with '|',
+#   dataset_root="/path/to/human_data|/path/to/robot_data"
+# Norm stats and the train/val splits are then computed over the merged datasets; use the
+# exact same list/order in train_cotrain_lerobot.sh (splits are saved per dataset as
+# train_val_split_{i}.json, indexed by position in the list).
 # NOTE: dataset_path is intentionally left unset/empty so data_loader.create_dataset()
 # routes through the LeRobot branch (MotionTransDataset) instead of ZarrDataset.
 
@@ -20,7 +12,7 @@ checkpoint_base_dir="/mnt/data/sftp/data/locht1/motiontrans/pretrained_ckpts"
 assets_base_dir="/mnt/data/sftp/data/locht1/motiontrans/assets"
 export HF_HOME="/mnt/data/sftp/data/locht1/hf"
 export OPENPI_DATA_HOME="/mnt/data/sftp/data/locht1/motiontrans/openpi"
-export LEROBOT_HOME="/mnt/data/sftp/data/locht1/motiontrans/lerobot"
+export HF_LEROBOT_HOME="/mnt/data/sftp/data/locht1/motiontrans/lerobot"
 export CUDA_VISIBLE_DEVICES=0
 exp_name="default"               # not used
 
@@ -31,7 +23,7 @@ uv run scripts/compute_norm_stats.py pi0_droid_motiontrans \
 --checkpoint_base_dir=${checkpoint_base_dir} \
 --assets_base_dir=${assets_base_dir} \
 --repo_id=${repo_id} \
---dataset_root=${dataset_root} \
+--dataset_root="${dataset_root}" \
 --state_down_sample_steps 2 \
 --action_down_sample_steps 2 \
 --proprioception_rep "relative" \
