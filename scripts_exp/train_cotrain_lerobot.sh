@@ -4,8 +4,8 @@
 # dataset requirements). Run get_normalize_cotrain_lerobot.sh once first to compute norm
 # stats and the train/val split for this repo_id.
 
-exp_name="default"                           # the description of the experiment target
-repo_id="pp"          # identifier only, used for norm-stats/assets dir naming
+exp_name="pp_abs_20hz"                           # the description of the experiment target
+repo_id="pp_abs_20hz"          # identifier only, used for norm-stats/assets dir naming
 dataset_root="/mnt/data/sftp/data/locht1/vr_data/human_stack_three_cup|/mnt/data/sftp/data/locht1/vr_data/robot_stack_three_cup"   # local directory containing the LeRobot dataset (meta/, data/, videos/)
 # Multiple LeRobot datasets (e.g. human + robot co-training): separate the roots with '|',
 #   dataset_root="/path/to/human_data|/path/to/robot_data"
@@ -27,14 +27,14 @@ now_date=$(date "+%Y.%m.%d")
 alpha=0.5
 proprioception_droprate=0.0
 num_devices=2
-single_batch_size=12
+single_batch_size=24
 batch_size=$((num_devices * single_batch_size))
 echo batch_size $batch_size
 
-num_train_steps=120001
-keep_period=60000
+num_train_steps=80001
+keep_period=40000
 log_interval=250
-save_interval=60000
+save_interval=40000
 val_interval=5000
 max_token_len=150
 
@@ -54,9 +54,9 @@ XLA_PYTHON_CLIENT_MEM_FRACTION=0.95 python scripts/train.py pi0_droid_motiontran
 --batch-size=$batch_size \
 --repo_id=${repo_id} \
 --dataset_root="${dataset_root}" \
---state_down_sample_steps 2 \
---action_down_sample_steps 2 \
---proprioception_rep "relative" \
+--state_down_sample_steps 0 \
+--action_down_sample_steps 1 \
+--proprioception_rep "abs" \
 --action_rep "relative" \
 --proprioception_droprate ${proprioception_droprate} \
 --use_val_dataset \
